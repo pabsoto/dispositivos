@@ -1,0 +1,149 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/servicio_imagen.dart';
+import '../utils/constantes.dart';
+import '../widgets/boton_app.dart';
+import 'pantalla_configuracion.dart';
+import 'pantalla_rompecabezas.dart';
+
+class PantallaInicio extends StatefulWidget {
+  const PantallaInicio({super.key});
+
+  @override
+  State<PantallaInicio> createState() => _PantallaInicioState();
+}
+
+class _PantallaInicioState extends State<PantallaInicio> {
+  final ServicioImagen _servicioImagen = ServicioImagen();
+  File? _imagenSeleccionada;
+
+  Future<void> _elegirImagen(ImageSource fuente) async {
+    final imagen = await _servicioImagen.seleccionarImagen(fuente);
+    if (imagen != null) {
+      setState(() => _imagenSeleccionada = imagen);
+    }
+  }
+
+  Future<void> _continuar() async {
+    if (_imagenSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Primero selecciona una imagen')),
+      );
+      return;
+    }
+
+    final nivel = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Constantes.fondo,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => const PantallaConfiguracion(),
+    );
+
+    if (nivel == null || !mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PantallaRompecabezas(
+          imagen: _imagenSeleccionada!,
+          tamanoGrilla: nivel,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Constantes.fondo,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              Text(
+  'Rompecabezas',
+  style: Constantes.tituloPrincipal(),
+),
+              const SizedBox(height: 24),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Constantes.rosaEmpolvado,
+                      width: 2,
+                    ),
+                  ),
+                  child: _imagenSeleccionada != null
+                      ? Image.file(_imagenSeleccionada!, fit: BoxFit.cover)
+                      : Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.image_outlined,
+                                size: 48,
+                                color: Constantes.rosaEmpolvado,
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Tu imagen va aquí',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Constantes.marronTierra,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: BotonApp(
+                      texto: 'Subir imagen',
+                      icono: Icons.upload_rounded,
+                      colorFondo: Constantes.rosaEmpolvado,
+                      colorTexto: Constantes.marronTierra,
+                      onPressed: () => _elegirImagen(ImageSource.gallery),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: BotonApp(
+                      texto: 'Tomar foto',
+                      icono: Icons.camera_alt_rounded,
+                      colorFondo: Constantes.amarilloMantequilla,
+                      colorTexto: Constantes.marronTierra,
+                      onPressed: () => _elegirImagen(ImageSource.camera),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              BotonApp(
+                texto: 'Continuar',
+                icono: Icons.arrow_forward_rounded,
+                colorFondo: Constantes.verdeSalvia,
+                colorTexto: Constantes.fondo,
+                onPressed: _continuar,
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
