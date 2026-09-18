@@ -167,46 +167,16 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
   }
 
   void _mostrarVictoriaIA() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Constantes.fondo,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Constantes.azulEmpolvado,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(LucideIcons.sparkles, color: Constantes.fondo, size: 32),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Resuelto con A*',
-              style: Constantes.subtitulo(tamano: 22, color: Constantes.marronTierra),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'El algoritmo encontró la solución',
-              style: TextStyle(fontSize: 15, color: Constantes.marronTierra),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(foregroundColor: Constantes.azulEmpolvado),
-              child: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-            ),
-          ],
-        ),
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => _NotificacionIA(
+        onDismiss: () => overlayEntry.remove(),
       ),
     );
+
+    overlay.insert(overlayEntry);
   }
 
   Future<void> _resolverConIA() async {
@@ -399,12 +369,23 @@ class _DialogoGuardarRecordState extends State<_DialogoGuardarRecord> {
     final nombre = _controlador.text.trim();
     if (nombre.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa un nombre para guardar tu récord')),
+        const SnackBar(content: Text('Ingresa un nombre para guardar tu tiempo')),
       );
       return;
     }
     widget.onGuardar(nombre);
     Navigator.pop(context);
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => _NotificacionGuardado(
+        onDismiss: () => overlayEntry.remove(),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
   }
 
   @override
@@ -440,7 +421,7 @@ class _DialogoGuardarRecordState extends State<_DialogoGuardarRecord> {
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Si quieres guardar tu récord, ingresa tu nombre',
+                'Si quieres guardar tu tiempo, ingresa tu nombre',
                 style: TextStyle(fontSize: 13, color: Constantes.marronTierra),
               ),
             ),
@@ -482,7 +463,7 @@ class _DialogoGuardarRecordState extends State<_DialogoGuardarRecord> {
                     ),
                     onPressed: _guardar,
                     child: const Text(
-                      'Guardar récord',
+                      'Guardar tiempo',
                       style: TextStyle(color: Constantes.fondo, fontWeight: FontWeight.w700),
                       textAlign: TextAlign.center,
                     ),
@@ -491,6 +472,172 @@ class _DialogoGuardarRecordState extends State<_DialogoGuardarRecord> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificacionIA extends StatefulWidget {
+  final VoidCallback onDismiss;
+
+  const _NotificacionIA({required this.onDismiss});
+
+  @override
+  State<_NotificacionIA> createState() => _NotificacionIAState();
+}
+
+class _NotificacionIAState extends State<_NotificacionIA> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _controller.forward();
+
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        _controller.reverse().then((_) {
+          if (mounted) widget.onDismiss();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 24,
+      left: 16,
+      right: 16,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Constantes.azulEmpolvado, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.sparkles, color: Constantes.azulEmpolvado),
+                const SizedBox(width: 12),
+                const Text(
+                  'Resuelto con A*',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: Constantes.marronTierra),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificacionGuardado extends StatefulWidget {
+  final VoidCallback onDismiss;
+
+  const _NotificacionGuardado({required this.onDismiss});
+
+  @override
+  State<_NotificacionGuardado> createState() => _NotificacionGuardadoState();
+}
+
+class _NotificacionGuardadoState extends State<_NotificacionGuardado> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _controller.forward();
+
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        _controller.reverse().then((_) {
+          if (mounted) widget.onDismiss();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 24,
+      left: 16,
+      right: 16,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Constantes.verdeSalvia, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.check, color: Constantes.verdeSalvia),
+                const SizedBox(width: 12),
+                const Text(
+                  'Tiempo guardado',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: Constantes.marronTierra),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

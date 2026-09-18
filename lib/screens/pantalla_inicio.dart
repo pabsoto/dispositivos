@@ -88,17 +88,20 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       ),
                       child: _imagenSeleccionada != null
                           ? Image.file(_imagenSeleccionada!, fit: BoxFit.cover)
-                          : Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.image_outlined, size: 48, color: Constantes.rosaEmpolvado),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'Tu imagen va aquí',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Constantes.marronTierra),
-                                  ),
-                                ],
+                          : CustomPaint(
+                              painter: _Cuadriculado(),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.image_outlined, size: 48, color: Constantes.rosaEmpolvado),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Tu imagen va aquí',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Constantes.marronTierra),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                     ),
@@ -169,4 +172,26 @@ class _PantallaInicioState extends State<PantallaInicio> {
       ),
     );
   }
+}
+
+class _Cuadriculado extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Constantes.rosaEmpolvado.withOpacity(0.15)
+      ..strokeWidth = 1;
+
+    final gridSize = 20.0;
+
+    for (double x = 0; x <= size.width; x += gridSize) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+
+    for (double y = 0; y <= size.height; y += gridSize) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
