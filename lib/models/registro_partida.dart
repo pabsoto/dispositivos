@@ -1,10 +1,12 @@
 class RegistroPartida {
+  final String nombre;
   final int tamanoGrilla;
   final Duration tiempo;
   final DateTime fecha;
   final int movimientos;
 
   RegistroPartida({
+    required this.nombre,
     required this.tamanoGrilla,
     required this.tiempo,
     required this.fecha,

@@ -37,7 +37,7 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
   Timer? _temporizadorUI;
   bool _cronometroIniciado = false;
   bool _resueltoConIA = false;
-  bool _registroGuardado = false;
+  bool _finalizado = false;
   int _contadorMovimientos = 0;
   late List<int?> _estadoInicial;
 
@@ -94,7 +94,7 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
     setState(() {
       _tablero.celdas = List<int?>.from(_estadoInicial);
       _contadorMovimientos = 0;
-      _registroGuardado = false;
+      _finalizado = false;
       _resueltoConIA = false;
     });
   }
@@ -107,7 +107,7 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
       _tablero.mezclar(pasos: widget.tamanoGrilla == 4 ? 50 : 150);
       _estadoInicial = List<int?>.from(_tablero.celdas);
       _contadorMovimientos = 0;
-      _registroGuardado = false;
+      _finalizado = false;
       _resueltoConIA = false;
     });
   }
@@ -121,7 +121,7 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
   }
 
   void _alTocarPieza(int posicion) {
-    if (_resolviendo) return;
+    if (_resolviendo || _finalizado) return;
 
     _iniciarCronometroSiHaceFalta();
     setState(() {
@@ -130,34 +130,43 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
     });
 
     if (_tablero.estaResuelto()) {
+      _finalizado = true;
       _detenerCronometro();
-      _guardarRegistroSiCorresponde();
       Future.delayed(const Duration(milliseconds: 700), () {
-        if (mounted) _mostrarVictoria();
+        if (mounted) {
+          if (_resueltoConIA) {
+            _mostrarVictoriaIA();
+          } else {
+            _mostrarDialogoGuardarRecord();
+          }
+        }
       });
     }
   }
 
-  void _guardarRegistroSiCorresponde() {
-    if (_resueltoConIA || _registroGuardado) return;
-    _registroGuardado = true;
-
-    ServicioRegistros.instancia.agregarRegistro(
-      RegistroPartida(
-        tamanoGrilla: widget.tamanoGrilla,
+  void _mostrarDialogoGuardarRecord() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _DialogoGuardarRecord(
         tiempo: _cronometro.elapsed,
-        fecha: DateTime.now(),
         movimientos: _contadorMovimientos,
+        onGuardar: (nombre) {
+          ServicioRegistros.instancia.agregarRegistro(
+            RegistroPartida(
+              nombre: nombre,
+              tamanoGrilla: widget.tamanoGrilla,
+              tiempo: _cronometro.elapsed,
+              fecha: DateTime.now(),
+              movimientos: _contadorMovimientos,
+            ),
+          );
+        },
       ),
     );
   }
 
-  void _mostrarVictoria() {
-    final colorAcento = _resueltoConIA ? Constantes.azulEmpolvado : Constantes.verdeSalvia;
-    final icono = _resueltoConIA ? LucideIcons.sparkles : LucideIcons.trophy;
-    final titulo = _resueltoConIA ? 'Resuelto con A*' : '¡Lo lograste!';
-    final textoBoton = _resueltoConIA ? 'Cerrar' : 'Genial';
-
+  void _mostrarVictoriaIA() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -170,43 +179,29 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
             Container(
               width: 64,
               height: 64,
-              decoration: BoxDecoration(
-                color: colorAcento,
+              decoration: const BoxDecoration(
+                color: Constantes.azulEmpolvado,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icono, color: Constantes.fondo, size: 32),
+              child: const Icon(LucideIcons.sparkles, color: Constantes.fondo, size: 32),
             ),
             const SizedBox(height: 20),
             Text(
-              titulo,
+              'Resuelto con A*',
               style: Constantes.subtitulo(tamano: 22, color: Constantes.marronTierra),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            if (!_resueltoConIA)
-              Column(
-                children: [
-                  Text(
-                    'Tiempo: $_tiempoActualFormateado',
-                    style: const TextStyle(fontSize: 16, color: Constantes.marronTierra),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Movimientos: $_contadorMovimientos',
-                    style: const TextStyle(fontSize: 16, color: Constantes.marronTierra),
-                  ),
-                ],
-              ),
+            const Text(
+              'El algoritmo encontró la solución',
+              style: TextStyle(fontSize: 15, color: Constantes.marronTierra),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(
-                foregroundColor: colorAcento,
-              ),
-              child: Text(
-                textoBoton,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-              ),
+              style: TextButton.styleFrom(foregroundColor: Constantes.azulEmpolvado),
+              child: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
             ),
           ],
         ),
@@ -216,7 +211,7 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
 
   Future<void> _resolverConIA() async {
     _resueltoConIA = true;
-    _detenerCronometro(); // si el usuario ya estaba jugando, el cronometro se detiene aqui
+    _detenerCronometro();
 
     setState(() => _resolviendo = true);
 
@@ -240,7 +235,8 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
     setState(() => _resolviendo = false);
 
     if (_tablero.estaResuelto()) {
-      _mostrarVictoria();
+      _finalizado = true;
+      _mostrarVictoriaIA();
     }
   }
 
@@ -363,6 +359,140 @@ class _PantallaRompecabezasState extends State<PantallaRompecabezas> {
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _DialogoGuardarRecord extends StatefulWidget {
+  final Duration tiempo;
+  final int movimientos;
+  final void Function(String nombre) onGuardar;
+
+  const _DialogoGuardarRecord({
+    required this.tiempo,
+    required this.movimientos,
+    required this.onGuardar,
+  });
+
+  @override
+  State<_DialogoGuardarRecord> createState() => _DialogoGuardarRecordState();
+}
+
+class _DialogoGuardarRecordState extends State<_DialogoGuardarRecord> {
+  final TextEditingController _controlador = TextEditingController();
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  String get _tiempoFormateado {
+    final ms = widget.tiempo.inMilliseconds;
+    final minutos = (ms ~/ 60000).toString().padLeft(2, '0');
+    final segundos = ((ms ~/ 1000) % 60).toString().padLeft(2, '0');
+    final centesimas = ((ms % 1000) ~/ 10).toString().padLeft(2, '0');
+    return '$minutos:$segundos.$centesimas';
+  }
+
+  void _guardar() {
+    final nombre = _controlador.text.trim();
+    if (nombre.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa un nombre para guardar tu récord')),
+      );
+      return;
+    }
+    widget.onGuardar(nombre);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Constantes.fondo,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Constantes.verdeSalvia,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(LucideIcons.trophy, color: Constantes.fondo, size: 32),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '¡Lo lograste!',
+              style: Constantes.subtitulo(tamano: 22, color: Constantes.marronTierra),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text('Tiempo: $_tiempoFormateado', style: const TextStyle(fontSize: 16, color: Constantes.marronTierra)),
+            const SizedBox(height: 4),
+            Text('Movimientos: ${widget.movimientos}', style: const TextStyle(fontSize: 16, color: Constantes.marronTierra)),
+            const SizedBox(height: 20),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Si quieres guardar tu récord, ingresa tu nombre',
+                style: TextStyle(fontSize: 13, color: Constantes.marronTierra),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _controlador,
+              maxLength: 20,
+              style: const TextStyle(color: Constantes.marronTierra),
+              decoration: InputDecoration(
+                hintText: 'Tu nombre',
+                counterText: '',
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Constantes.rosaEmpolvado, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Omitir', style: TextStyle(color: Constantes.marronTierra, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Constantes.verdeSalvia,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    onPressed: _guardar,
+                    child: const Text(
+                      'Guardar récord',
+                      style: TextStyle(color: Constantes.fondo, fontWeight: FontWeight.w700),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
