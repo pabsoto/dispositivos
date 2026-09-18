@@ -5,6 +5,7 @@ import '../services/servicio_imagen.dart';
 import '../utils/constantes.dart';
 import '../widgets/boton_app.dart';
 import 'pantalla_configuracion.dart';
+import 'pantalla_records.dart';
 import 'pantalla_rompecabezas.dart';
 
 class PantallaInicio extends StatefulWidget {
@@ -55,6 +56,13 @@ class _PantallaInicioState extends State<PantallaInicio> {
     );
   }
 
+  void _irARecords() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PantallaRecords()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,46 +73,53 @@ class _PantallaInicioState extends State<PantallaInicio> {
           child: Column(
             children: [
               const SizedBox(height: 24),
-              Text(
-  'Rompecabezas',
-  style: Constantes.tituloPrincipal(),
-),
+              Text('Rompecabezas', style: Constantes.tituloPrincipal()),
               const SizedBox(height: 24),
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Constantes.rosaEmpolvado,
-                      width: 2,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Constantes.rosaEmpolvado, width: 2),
+                      ),
+                      child: _imagenSeleccionada != null
+                          ? Image.file(_imagenSeleccionada!, fit: BoxFit.cover)
+                          : Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.image_outlined, size: 48, color: Constantes.rosaEmpolvado),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Tu imagen va aquí',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Constantes.marronTierra),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
-                  ),
-                  child: _imagenSeleccionada != null
-                      ? Image.file(_imagenSeleccionada!, fit: BoxFit.cover)
-                      : Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.image_outlined,
-                                size: 48,
-                                color: Constantes.rosaEmpolvado,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Tu imagen va aquí',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Constantes.marronTierra,
-                                ),
-                              ),
-                            ],
+                    if (_imagenSeleccionada != null)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _imagenSeleccionada = null),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              color: Constantes.rosaEmpolvado,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close_rounded, color: Constantes.marronTierra, size: 20),
                           ),
                         ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -138,6 +153,14 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 colorFondo: Constantes.verdeSalvia,
                 colorTexto: Constantes.fondo,
                 onPressed: _continuar,
+              ),
+              const SizedBox(height: 12),
+              BotonApp(
+                texto: 'Ir a records',
+                icono: Icons.emoji_events_rounded,
+                colorFondo: Constantes.azulEmpolvado,
+                colorTexto: Constantes.marronTierra,
+                onPressed: _irARecords,
               ),
               const SizedBox(height: 24),
             ],

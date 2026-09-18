@@ -44,7 +44,7 @@ class GrillaRompecabezas extends StatelessWidget {
                 width: ladoCelda,
                 height: ladoCelda,
                 child: Padding(
-                  padding: const EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(2),
                   child: PiezaRompecabezas(
                     imagenBytes: imagenesPorId[id]!,
                     sePuedeMover: movimientosValidos.contains(posicion),
